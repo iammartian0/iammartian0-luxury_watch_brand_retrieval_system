@@ -45,10 +45,21 @@ class WatchRetrievalSystem:
     def _load_indexes(self):
         """Load FAISS indexes"""
         logger.info("Loading FAISS indexes...")
-        
-        self.image_index = faiss.read_index(str(self.data_dir / "image_index.faiss"))
-        self.text_index = faiss.read_index(str(self.data_dir / "text_index.faiss"))
-        
+
+        image_index_path = self.data_dir / "image_index.faiss"
+        text_index_path = self.data_dir / "text_index.faiss"
+
+        if not image_index_path.exists():
+            logger.error(f"Image index not found at {image_index_path}")
+            raise FileNotFoundError(f"Image index file not found. Please ensure data files are downloaded.")
+
+        if not text_index_path.exists():
+            logger.error(f"Text index not found at {text_index_path}")
+            raise FileNotFoundError(f"Text index file not found. Please ensure data files are downloaded.")
+
+        self.image_index = faiss.read_index(str(image_index_path))
+        self.text_index = faiss.read_index(str(text_index_path))
+
         logger.info(f"Image index: {self.image_index.ntotal} vectors")
         logger.info(f"Text index: {self.text_index.ntotal} vectors")
     

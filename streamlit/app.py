@@ -18,30 +18,35 @@ sys.path.insert(0, str(SRC_DIR))
 os.chdir(PROJECT_ROOT)
 
 # Configuration
-IMAGES_RELEASE_URL = "https://github.com/iammartian0/luxury_watch_brand_retrieval_system/releases/download/v1.0-images/watch_images_demo.zip"
+DATA_TAG = "v1.0"
+IMAGES_RELEASE_URL = f"https://github.com/iammartian0/luxury_watch_brand_retrieval_system/releases/download/{DATA_TAG}/watch_images_demo.zip"
 IMAGES_DIR = PROJECT_ROOT / "data" / "filtered"
 ZIP_FILE = PROJECT_ROOT / "watch_images_demo.zip"
+
+# Download utility
+sys.path.insert(0, str(SRC_DIR))
+from download_utils import GitHubReleaseDownloader, get_missing_files
 
 def download_images_if_needed():
     """Download and extract watch images from GitHub release if not present"""
     if IMAGES_DIR.exists() and any(IMAGES_DIR.iterdir()):
         return True
-    
+
     try:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.warning("Watch images not found. Downloading from GitHub...")
             progress_bar = st.progress(0)
             status_text = st.empty()
-            
+
             # Download zip file
             status_text.text("Downloading images zip (this may take 1-2 minutes)...")
             response = requests.get(IMAGES_RELEASE_URL, stream=True)
             response.raise_for_status()
-            
+
             total_size = int(response.headers.get('content-length', 0))
             downloaded = 0
-            
+
             with open(ZIP_FILE, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
@@ -50,32 +55,91 @@ def download_images_if_needed():
                         if total_size > 0:
                             progress = downloaded / total_size
                             progress_bar.progress(min(progress, 0.7))
-            
+
             # Extract zip file
             status_text.text("Extracting images...")
             progress_bar.progress(0.8)
-            
+
             IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-            
+
             with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
                 zip_ref.extractall(IMAGES_DIR.parent)
-            
+
             progress_bar.progress(1.0)
             status_text.text("Images downloaded and extracted successfully!")
-            
+
             # Clean up zip file
             os.remove(ZIP_FILE)
-            
+
             st.success("✅ Watch images loaded! You can now use the demo.")
             return True
-            
+
     except Exception as e:
         st.error(f"Failed to download images: {str(e)}")
         st.info("Please try again later or contact the administrator.")
         return False
 
-# Download images if needed
+def download_data_files_if_needed():
+    """Download data files from GitHub releases if not present"""
+    required_files = [
+        "text_embeddings.npy",
+        "text_index.faiss",
+        "image_embeddings.npy",
+        "image_index.faiss"
+    ]
+
+    missing_files = get_missing_files(IMAGES_DIR.parent, required_files)
+
+    if not missing_files:
+        return True
+
+    try:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.warning(f"⚠️ Missing {len(missing_files)} data file(s). Downloading from GitHub...")
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            downloader = GitHubReleaseDownloader(tag=DATA_TAG)
+
+            def progress_callback(progress: float, message: str):
+                progress_bar.progress(progress)
+                status_text.text(message)
+
+            def status_callback(message: str):
+                status_text.text(message)
+
+            results = downloader.download_multiple_files(
+                missing_files,
+                progress_callback=progress_callback,
+                status_text_callback=status_callback
+            )
+
+            summary = []
+            for filename, success in results.items():
+                summary.append(f"{'✓' if success else '✗'} {filename}")
+
+            summary_text = "\n".join(summary)
+            status_text.text(summary_text)
+
+            # Clean up after download
+            progress_bar.progress(1.0)
+
+            if all(results.values()):
+                st.success("✅ All data files downloaded successfully!")
+                return True
+            else:
+                st.warning("⚠️ Some data files could not be downloaded. Continuing with available data.")
+                return True
+
+    except Exception as e:
+        st.error(f"❌ Failed to download data files: {str(e)}")
+        st.info("⚠️ Continuing without data files. Some features may not work correctly.")
+        return True
+
+# Download images and data files if needed
 download_images_if_needed()
+download_data_files_if_needed()
 
 @st.cache_resource
 def load_retrieval_system():

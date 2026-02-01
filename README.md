@@ -21,6 +21,7 @@ Try the interactive demo: **[Streamlit Cloud](https://luxwatches.streamlit.app/)
 ### Prerequisites
 - Python 3.11 or higher
 - CUDA-capable GPU (optional, for faster processing)
+- Internet connection (for initial data download)
 
 ### Setup
 
@@ -32,7 +33,17 @@ cd luxury_watch_brand_retrieval_system
 # Install dependencies
 pip install -r requirements.txt
 
+# Data files (embeddings and FAISS indexes) will be automatically downloaded
+# on first run from GitHub Releases (~570MB total)
 ```
+
+### First Run
+
+When you run the app for the first time, data files will be automatically downloaded:
+- **Watch images** (~263MB)
+- **Text embeddings and index** (~570MB)
+
+**Note:** This download only happens once. Subsequent runs will use cached files.
 
 ## 📊 Dataset
 
@@ -40,7 +51,7 @@ pip install -r requirements.txt
 - **Total Images**: 696 (after cleaning)
 - **Brands**: 10 luxury watch brands
 - **Format**: JPG, PNG, WEBP
-- **Storage**: ~150MB (auto-downloaded from GitHub release)
+- **Storage**: ~150MB (auto-downloaded on first run)
 - **Source**: DuckDuckGo image search, cleaned with CLIP
 
 | Brand | Images |
@@ -62,7 +73,7 @@ pip install -r requirements.txt
 - **Brands**: 10 luxury watch brands
 - **Models**: 515 unique watch models
 - **Source**: Kaggle datasets
-- **Storage**: ~200MB (included in repository via Git LFS)
+- **Storage**: ~200MB (auto-downloaded on first run)
 
 ## 🛠️ Tech Stack
 
@@ -129,9 +140,9 @@ luxury_watch_brand_retrieval_system/
 ├── data/
 │   ├── filtered/                     # 696 cleaned images (auto-downloaded)
 │   ├── image_embeddings.npy          # 696 × 512 image embeddings
-│   ├── text_embeddings.npy           # 194K × 512 text embeddings (LFS)
+│   ├── text_embeddings.npy           # 194K × 512 text embeddings
 │   ├── image_index.faiss             # FAISS image index
-│   ├── text_index.faiss              # FAISS text index (LFS)
+│   ├── text_index.faiss              # FAISS text index
 │   ├── cleaned_metadata.csv          # Image metadata
 │   ├── cleaned_watches.csv           # Text dataset
 │   └── *_mapping.json                # Metadata mappings

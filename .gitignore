@@ -32,11 +32,14 @@ checkpoints/
 datasets/
 raw_data/
 processed_data/
+# Ignore large data files (will be downloaded from GitHub Releases)
+data/text_embeddings.npy
+data/text_index.faiss
+data/image_embeddings.npy
+data/image_index.faiss
+data/*.backup.csv
 # Allow specific data files
 !data/embeddings.npy
-!data/text_embeddings.npy
-!data/image_index.faiss
-!data/text_index.faiss
 !data/*.csv
 !data/*_mapping.json
 # Ignore images and backups
