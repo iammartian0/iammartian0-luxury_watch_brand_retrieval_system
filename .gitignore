@@ -29,14 +29,22 @@ models/
 checkpoints/
 
 # Data files
-data/
-*.csv
-*.json
-*.xlsx
-*.parquet
 datasets/
 raw_data/
 processed_data/
+# Allow specific data files
+!data/embeddings.npy
+!data/text_embeddings.npy
+!data/image_index.faiss
+!data/text_index.faiss
+!data/*.csv
+!data/*_mapping.json
+# Ignore images and backups
+data/images/
+data/filtered/
+data/images_backup/
+data/removed/
+data/*.backup.csv
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -74,3 +82,31 @@ htmlcov/
 
 # Docker
 .dockerignore
+
+# Internal documentation (keep locally, don't push)
+SESSION_UPDATE.md
+PHASE_8_EXTENSIONS.md
+lastphase_update_plan.md
+lastphase_update_plan.json
+next_focus.txt
+FUTURE_FEATURE_1.txt
+FUTURE_FEATURE_2.txt
+IMAGES_SETUP_GUIDE.md
+
+# Internal test files (keep locally)
+test_imports.py
+test_new_features.py
+test_results.json
+
+# Notebooks (keep locally)
+notebooks/
+
+# Backup and rejected data (keep locally)
+data/*_backup.csv
+data/rejected_*.csv
+data/images_backup/
+data/removed/
+
+# Internal scripts
+nul
+watches_scraper.py

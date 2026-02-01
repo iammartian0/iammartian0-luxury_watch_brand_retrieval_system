@@ -1,1 +1,0 @@
-# Utility functions for the watch classifier project

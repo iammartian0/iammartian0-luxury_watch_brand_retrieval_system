@@ -14,3 +14,5 @@ requests>=2.31.0
 python-multipart>=0.0.6
 pydantic>=2.5.0
 python-dotenv>=1.0.0
+jmd_imagescraper>=0.3.0
+faiss-cpu>=1.7.0

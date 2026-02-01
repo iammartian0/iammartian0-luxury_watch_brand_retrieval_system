@@ -1,0 +1,8 @@
+{
+  "index_type": "IndexFlatIP",
+  "dimension": 512,
+  "total_vectors": 696,
+  "metric": "Inner Product (cosine similarity with normalized vectors)",
+  "embedding_file": "image_embeddings.npy",
+  "metadata_file": "image_metadata_mapping.json"
+}

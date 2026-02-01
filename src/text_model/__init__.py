@@ -1,1 +1,0 @@
-# Text model for luxury watch description analysis

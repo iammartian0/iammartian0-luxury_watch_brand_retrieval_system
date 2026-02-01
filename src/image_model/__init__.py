@@ -1,1 +1,0 @@
-# Image model for luxury watch classification
