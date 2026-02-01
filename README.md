@@ -14,7 +14,7 @@ A CLIP-powered multimodal search engine for luxury watches with both image and t
 
 ## 🚀 Live Demo
 
-Try the interactive demo: **[Streamlit Cloud](https://luxurywatchbrandretrievalsystem-fcbhravztrw476ubnwvwev.streamlit.app/)**
+Try the interactive demo: **[Streamlit Cloud](https://luxwatches.streamlit.app/)**
 
 ## 📦 Installation
 
