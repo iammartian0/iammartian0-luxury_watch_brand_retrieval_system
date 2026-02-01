@@ -34,11 +34,6 @@ pip install -r requirements.txt
 
 ```
 
-### Streamlit Demo 
-
-Demo opens [here](https://luxurywatchbrandretrievalsystem-fcbhravztrw476ubnwvwev.streamlit.app/)
-
-
 ## 📊 Dataset
 
 ### Images
