@@ -3,6 +3,7 @@ import sys
 import os
 import requests
 import zipfile
+import time
 from pathlib import Path
 
 # Get the absolute path to the project root
@@ -139,6 +140,14 @@ def download_data_files_if_needed():
 
 # Download images and data files if needed
 download_images_if_needed()
+
+# Force cache clear if requested via query parameter
+if "clear_cache" in st.query_params:
+    st.cache_resource.clear()
+    st.info("Cache cleared. Reloading...")
+    time.sleep(2)
+    st.rerun()
+
 download_data_files_if_needed()
 
 @st.cache_resource
@@ -623,7 +632,17 @@ def main():
     st.sidebar.write(f"• Images: {system.image_index.ntotal:,}")
     st.sidebar.write(f"• Text Records: {system.text_index.ntotal:,}")
     st.sidebar.write(f"**Device:** {system.data_dir.parent.name}")
-    
+
+    st.sidebar.divider()
+
+    # Cache management
+    st.sidebar.subheader("🔧 System Options")
+    if st.sidebar.button("🔄 Clear Cache & Reload"):
+        st.cache_resource.clear()
+        st.info("Cache cleared! Reloading...")
+        time.sleep(1)
+        st.rerun()
+
     st.sidebar.divider()
     
     # Page selection

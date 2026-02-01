@@ -47,12 +47,26 @@ class GitHubReleaseDownloader:
         """
         url = self.get_download_url(filename)
         output_path = self.data_dir / filename
-        
+
+        # Check if file exists and verify integrity
         if output_path.exists():
-            logger.info(f"File already exists: {filename}")
-            if progress_callback:
-                progress_callback(1.0, f"✓ {filename} already downloaded")
-            return True
+            # Verify file is not a corrupt LFS pointer
+            if filename.endswith('.faiss') or filename.endswith('.npy'):
+                is_valid = verify_faiss_file(output_path)
+                if not is_valid:
+                    logger.warning(f"File {filename} is corrupt or invalid, will re-download")
+                    output_path.unlink()  # Delete corrupt file
+                else:
+                    logger.info(f"File already exists and is valid: {filename}")
+                    if progress_callback:
+                        progress_callback(1.0, f"✓ {filename} already downloaded")
+                    return True
+            else:
+                # For non-FAISS files, just check existence
+                logger.info(f"File already exists: {filename}")
+                if progress_callback:
+                    progress_callback(1.0, f"✓ {filename} already downloaded")
+                return True
         
         try:
             if status_text_callback:
@@ -169,17 +183,62 @@ def check_required_files(
     return {filename: (data_dir / filename).exists() for filename in required_files}
 
 
+def verify_faiss_file(file_path: Path) -> bool:
+    """
+    Verify FAISS file is valid and not a corrupt Git LFS pointer.
+
+    Args:
+        file_path: Path to FAISS index file
+
+    Returns:
+        True if file is valid, False if corrupt or missing
+    """
+    if not file_path.exists():
+        return False
+
+    # Check file size (LFS pointer is ~137 bytes, valid index is > 1 KB)
+    file_size = file_path.stat().st_size
+    if file_size < 1024:
+        logger.warning(f"File {file_path} is too small ({file_size} bytes), likely a corrupt LFS pointer")
+        return False
+
+    # Check if file starts with Git LFS marker
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(7)
+            if header == b"version":
+                logger.warning(f"File {file_path} starts with 'version' marker, is a Git LFS pointer")
+                return False
+    except Exception as e:
+        logger.error(f"Failed to read file header {file_path}: {str(e)}")
+        return False
+
+    # Check if file has valid FAISS magic number (IxFI)
+    try:
+        with open(file_path, 'rb') as f:
+            faiss_header = f.read(4)
+            if faiss_header == b"IxFI":
+                logger.info(f"File {file_path} has valid FAISS magic number")
+                return True
+            else:
+                logger.error(f"File {file_path} missing FAISS magic number: {faiss_header}")
+                return False
+    except Exception as e:
+        logger.error(f"Failed to read FAISS header {file_path}: {str(e)}")
+        return False
+
+
 def get_missing_files(
     data_dir: Path,
     required_files: list[str]
 ) -> list[str]:
     """
     Get list of missing required files.
-    
+
     Args:
         data_dir: Path to data directory
         required_files: List of filenames to check
-        
+
     Returns:
         List of missing filenames
     """

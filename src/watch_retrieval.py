@@ -43,25 +43,44 @@ class WatchRetrievalSystem:
             logger.info("CLIP model loaded successfully")
     
     def _load_indexes(self):
-        """Load FAISS indexes"""
+        """Load FAISS indexes with verification"""
         logger.info("Loading FAISS indexes...")
 
         image_index_path = self.data_dir / "image_index.faiss"
         text_index_path = self.data_dir / "text_index.faiss"
 
-        if not image_index_path.exists():
-            logger.error(f"Image index not found at {image_index_path}")
-            raise FileNotFoundError(f"Image index file not found. Please ensure data files are downloaded.")
+        # Verify files exist and have valid size
+        for path, name in [(image_index_path, "Image"), (text_index_path, "Text")]:
+            if not path.exists():
+                raise FileNotFoundError(f"{name} index not found at {path}. Please ensure data files are downloaded.")
 
-        if not text_index_path.exists():
-            logger.error(f"Text index not found at {text_index_path}")
-            raise FileNotFoundError(f"Text index file not found. Please ensure data files are downloaded.")
+            file_size = path.stat().st_size
+            if file_size < 1024:
+                logger.error(f"{name} index file is too small ({file_size} bytes), likely a corrupt Git LFS pointer")
+                raise FileNotFoundError(
+                    f"{name} index file is corrupt ({file_size} bytes). "
+                    f"Please delete {path} and restart the application to re-download."
+                )
 
-        self.image_index = faiss.read_index(str(image_index_path))
-        self.text_index = faiss.read_index(str(text_index_path))
-
-        logger.info(f"Image index: {self.image_index.ntotal} vectors")
-        logger.info(f"Text index: {self.text_index.ntotal} vectors")
+        # Try to load indexes
+        try:
+            self.image_index = faiss.read_index(str(image_index_path))
+            self.text_index = faiss.read_index(str(text_index_path))
+            logger.info(f"Image index: {self.image_index.ntotal} vectors")
+            logger.info(f"Text index: {self.text_index.ntotal} vectors")
+        except RuntimeError as e:
+            error_msg = str(e)
+            logger.error(f"Failed to load FAISS indexes: {error_msg}")
+            if "Index type" in error_msg and "not recognized" in error_msg:
+                raise RuntimeError(
+                    f"FAISS index file format is incompatible. "
+                    f"This usually means a corrupt Git LFS pointer file was loaded. "
+                    f"Please delete data/text_index.faiss and data/image_index.faiss, then restart the application."
+                ) from e
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error loading FAISS indexes: {str(e)}")
+            raise
     
     def _load_metadata(self):
         """Load metadata mappings"""
