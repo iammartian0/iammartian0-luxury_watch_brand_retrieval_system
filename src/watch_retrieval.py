@@ -44,7 +44,7 @@ class WatchRetrievalSystem:
     
     def _load_indexes(self):
         """Load FAISS indexes with automatic download from GitHub Releases"""
-        from download_data import GitHubReleaseDownloader, verify_faiss_file
+        from download_utils import GitHubReleaseDownloader, verify_faiss_file
     
         logger.info("Loading FAISS indexes...")
 
