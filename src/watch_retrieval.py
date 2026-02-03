@@ -116,7 +116,13 @@ class WatchRetrievalSystem:
         
         with torch.no_grad():
             image_features = self.model.get_image_features(**inputs)
-            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        
+            # Add safety check
+            if image_features is None:
+                raise RuntimeError("Model returned None for image features")
+        
+            # Use torch.norm instead of .norm() method
+            image_features = image_features / torch.norm(image_features, dim=-1, keepdim=True)
         
         return image_features.cpu().numpy().astype('float32')
     
