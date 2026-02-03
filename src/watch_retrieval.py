@@ -117,6 +117,17 @@ class WatchRetrievalSystem:
         
         with torch.no_grad():
             image_features = self.model.get_image_features(**inputs)
+            
+            if hasattr(image_features, 'image_embeds'):
+                image_features = image_features.image_embeds
+            elif hasattr(image_features, 'pooler_output'):
+                image_features = image_features.pooler_output
+            elif hasattr(image_features, 'last_hidden_state'):
+                image_features = image_features.last_hidden_state[:, 0, :]
+            elif not isinstance(image_features, torch.Tensor):
+                raise RuntimeError(f"Unexpected CLIP output type: {type(image_features)}. "
+                                 f"Available attributes: {dir(image_features)}")
+            
             image_features = image_features / image_features.norm(dim=-1, keepdim=True)
         
         return image_features.cpu().numpy().astype('float32')
@@ -130,7 +141,18 @@ class WatchRetrievalSystem:
         
         with torch.no_grad():
             text_features = self.model.get_text_features(**inputs)
-            text_features = text_features / torch.norm(text_features, dim=-1, keepdim=True)
+            
+            if hasattr(text_features, 'text_embeds'):
+                text_features = text_features.text_embeds
+            elif hasattr(text_features, 'pooler_output'):
+                text_features = text_features.pooler_output
+            elif hasattr(text_features, 'last_hidden_state'):
+                text_features = text_features.last_hidden_state[:, 0, :]
+            elif not isinstance(text_features, torch.Tensor):
+                raise RuntimeError(f"Unexpected CLIP output type: {type(text_features)}. "
+                                 f"Available attributes: {dir(text_features)}")
+            
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
         
         return text_features.cpu().numpy().astype('float32')
     
