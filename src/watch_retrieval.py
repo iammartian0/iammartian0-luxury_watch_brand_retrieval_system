@@ -43,44 +43,43 @@ class WatchRetrievalSystem:
             logger.info("CLIP model loaded successfully")
     
     def _load_indexes(self):
-        """Load FAISS indexes with verification"""
+        """Load FAISS indexes with automatic download from GitHub Releases"""
+        from download_utils import GitHubReleaseDownloader, verify_faiss_file
+    
         logger.info("Loading FAISS indexes...")
 
         image_index_path = self.data_dir / "image_index.faiss"
         text_index_path = self.data_dir / "text_index.faiss"
-
-        # Verify files exist and have valid size
-        for path, name in [(image_index_path, "Image"), (text_index_path, "Text")]:
-            if not path.exists():
-                raise FileNotFoundError(f"{name} index not found at {path}. Please ensure data files are downloaded.")
-
-            file_size = path.stat().st_size
-            if file_size < 1024:
-                logger.error(f"{name} index file is too small ({file_size} bytes), likely a corrupt Git LFS pointer")
-                raise FileNotFoundError(
-                    f"{name} index file is corrupt ({file_size} bytes). "
-                    f"Please delete {path} and restart the application to re-download."
-                )
-
-        # Try to load indexes
-        try:
-            self.image_index = faiss.read_index(str(image_index_path))
-            self.text_index = faiss.read_index(str(text_index_path))
-            logger.info(f"Image index: {self.image_index.ntotal} vectors")
-            logger.info(f"Text index: {self.text_index.ntotal} vectors")
-        except RuntimeError as e:
-            error_msg = str(e)
-            logger.error(f"Failed to load FAISS indexes: {error_msg}")
-            if "Index type" in error_msg and "not recognized" in error_msg:
-                raise RuntimeError(
-                    f"FAISS index file format is incompatible. "
-                    f"This usually means a corrupt Git LFS pointer file was loaded. "
-                    f"Please delete data/text_index.faiss and data/image_index.faiss, then restart the application."
-                ) from e
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error loading FAISS indexes: {str(e)}")
-            raise
+    
+        # Check and auto-download if needed
+        files_to_check = {
+            "image_index.faiss": image_index_path,
+            "text_index.faiss": text_index_path
+        }
+    
+        files_to_download = []
+        for filename, path in files_to_check.items():
+            if not path.exists() or not verify_faiss_file(path):
+                if path.exists():
+                    logger.warning(f"Corrupt file detected: {filename}, will re-download")
+                    path.unlink()  # Delete corrupt file
+                files_to_download.append(filename)
+    
+        # Download missing/corrupt files
+        if files_to_download:
+            logger.info(f"Downloading {len(files_to_download)} file(s) from GitHub Releases...")
+            downloader = GitHubReleaseDownloader(data_dir=self.data_dir)
+            results = downloader.download_multiple_files(files_to_download)
+        
+            failed = [f for f, success in results.items() if not success]
+        if failed:
+            raise RuntimeError(f"Failed to download: {failed}")
+    
+        # Now load the indexes
+        self.image_index = faiss.read_index(str(image_index_path))
+        self.text_index = faiss.read_index(str(text_index_path))
+        logger.info(f"✓ Image index: {self.image_index.ntotal} vectors")
+        logger.info(f"✓ Text index: {self.text_index.ntotal} vectors")
     
     def _load_metadata(self):
         """Load metadata mappings"""
@@ -118,6 +117,11 @@ class WatchRetrievalSystem:
         with torch.no_grad():
             image_features = self.model.get_image_features(**inputs)
             
+            # Add safety check
+            if image_features is None:
+                raise RuntimeError("Model returned None for image features")
+            
+            # Extract tensor from different transformer model output formats
             if hasattr(image_features, 'image_embeds'):
                 image_features = image_features.image_embeds
             elif hasattr(image_features, 'pooler_output'):
